@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from routers import usuarios
 import models
 import database
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
 models.Base.metadata.create_all(bind=database.engine)
 
@@ -42,3 +44,10 @@ app.include_router(presupuesto.router)
 # Registros Automáticos
 from routers import registros_automaticos   
 app.include_router(registros_automaticos.router)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": "Error en el formato del JSON enviado. Verifica los campos y el formato."}
+    )

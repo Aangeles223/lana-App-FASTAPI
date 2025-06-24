@@ -193,3 +193,22 @@ class RegistroAutomaticoOut(RegistroAutomaticoBase):
     class Config:
         orm_mode = True
 # registro_automatico.py
+
+# autenticacion.py
+class UsuarioLogin(BaseModel):
+    email: str
+    contraseña: str
+# autenticacion.py
+
+#graficos.py
+class ResumenCategoria(BaseModel):
+    categoria_id: int
+    categoria_nombre: str
+    total: float
+# graficos.py
+
+#contrasena.py
+class CambiarContrasena(BaseModel):
+    contrasena_actual: str
+    contrasena_nueva: str
+# contrasena.py

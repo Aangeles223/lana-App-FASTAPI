@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 import models
+from sqlalchemy import func
+from schemas import ResumenCategoria
 from schemas import TransaccionCreate, TransaccionOut
 import database
 
@@ -24,6 +26,38 @@ def crear_transaccion(transaccion: TransaccionCreate, db: Session = Depends(get_
 @router.get("/", response_model=list[TransaccionOut])
 def listar_transacciones(db: Session = Depends(get_db)):
     return db.query(models.Transacciones).all()
+
+@router.get("/resumen", response_model=list[ResumenCategoria])
+def resumen_transacciones(
+    usuario_id: int,
+    tipo: str,
+    mes: int,
+    anio: int,
+    db: Session = Depends(get_db)
+):
+    resultados = (
+        db.query(
+            models.Transacciones.categoria_id,
+            models.Categorias.nombre.label("categoria_nombre"),
+            func.sum(models.Transacciones.monto).label("total")
+        )
+        .join(models.Categorias, models.Transacciones.categoria_id == models.Categorias.id)
+        .filter(
+            models.Transacciones.usuario_id == usuario_id,
+            models.Transacciones.tipo == tipo,
+            func.extract('month', models.Transacciones.fecha) == mes,
+            func.extract('year', models.Transacciones.fecha) == anio
+        )
+        .group_by(models.Transacciones.categoria_id, models.Categorias.nombre)
+        .all()
+    )
+    return [
+        ResumenCategoria(
+            categoria_id=r.categoria_id,
+            categoria_nombre=r.categoria_nombre,
+            total=float(r.total)
+        ) for r in resultados
+    ]
 
 @router.put("/{transaccion_id}", response_model=TransaccionOut)
 def actualizar_transaccion(transaccion_id: int, transaccion: TransaccionCreate, db: Session = Depends(get_db)):
