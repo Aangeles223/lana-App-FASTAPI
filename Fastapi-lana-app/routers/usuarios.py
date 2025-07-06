@@ -4,7 +4,7 @@ from schemas import UsuarioLogin
 import models
 from sqlalchemy import func
 from auth import crear_token
-from schemas import UsuarioCreate, UsuarioOut
+from schemas import UsuarioCreate, UsuarioOut, UsuarioUpdate
 from schemas import CambiarContrasena
 import database
 import bcrypt
@@ -68,16 +68,13 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{usuario_id}", response_model=UsuarioOut)
-def actualizar_usuario(usuario_id: int, usuario: UsuarioCreate, db: Session = Depends(get_db)):
+def actualizar_usuario(usuario_id: int, usuario: UsuarioUpdate, db: Session = Depends(get_db)):
     db_usuario = db.query(models.Usuarios).filter(models.Usuarios.id == usuario_id).first()
     if not db_usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    # Encriptar la contraseña si se actualiza
-    hashed_password = bcrypt.hashpw(usuario.contraseña.encode('utf-8'), bcrypt.gensalt())
     db_usuario.nombre = usuario.nombre
     db_usuario.apellidos = usuario.apellidos
     db_usuario.email = usuario.email
-    db_usuario.contraseña = hashed_password.decode('utf-8')
     db_usuario.telefono = usuario.telefono
     db.commit()
     db.refresh(db_usuario)

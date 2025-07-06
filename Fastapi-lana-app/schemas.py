@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, validator, Field
 from typing import Optional
 from datetime import datetime, date
 from enum import Enum as PyEnum
@@ -7,13 +7,16 @@ import re
 
 # usuaruio.py
 class UsuarioBase(BaseModel):
-    nombre: str
-    apellidos: str
-    email: EmailStr
+    nombre: str = Field(..., example="Juan", description="Nombre del usuario")
+    apellidos: str = Field(..., example="Pérez", description="Apellidos del usuario")
+    email: EmailStr = Field(..., example="juan@example.com", description="Correo electrónico")
+
+class UsuarioUpdate(UsuarioBase):
+    telefono: str = Field(..., example="5551234567", description="Teléfono de contacto")
 
 class UsuarioCreate(UsuarioBase):
-    contraseña: str
-    telefono: Optional[str] = None
+    contraseña: str = Field(..., example="MiContraseña123", description="Contraseña segura")
+    telefono: str = Field(..., example="5551234567", description="Teléfono de contacto")
 
     @validator('contraseña')
     def password_strong(cls, v):
@@ -73,6 +76,10 @@ class MedioNotificacionEnum(str, Enum):
 class TipoNotificacionEnum(str, Enum):
     exceso_presupuesto = "exceso_presupuesto"
     alerta_pago = "alerta_pago"
+    recordatorio = "recordatorio"
+    pago_pendiente = "pago_pendiente"
+    nuevo_ingreso = "nuevo_ingreso"
+    pago_registrado = "pago_registrado"
 
 class NotificacionBase(BaseModel):
     usuario_id: int
@@ -83,7 +90,7 @@ class NotificacionBase(BaseModel):
 class NotificacionCreate(BaseModel):
     usuario_id: int
     mensaje: str
-    medio: MedioNotificacionEnum
+    medio: str
     tipo: TipoNotificacionEnum
 
 class NotificacionOut(NotificacionBase):

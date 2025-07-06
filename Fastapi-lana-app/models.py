@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base, mapped_column
-from sqlalchemy import Integer, String, TIMESTAMP, func, Enum, Text, TIMESTAMP, ForeignKey, DECIMAL, Date
+from sqlalchemy import Integer, String, TIMESTAMP, func, Enum, Text, TIMESTAMP, ForeignKey, DECIMAL, Date, Column
 
 Base = declarative_base()
 
@@ -27,7 +27,18 @@ class Notificaciones(Base):
     usuario_id = mapped_column(Integer, ForeignKey("usuarios.id"), nullable=False)
     mensaje = mapped_column(Text, nullable=False)
     medio = mapped_column(Enum('email', 'sms'), nullable=False)
-    tipo = mapped_column(Enum('exceso_presupuesto', 'alerta_pago'), nullable=False)
+    tipo = Column(
+        Enum(
+            'exceso_presupuesto',
+            'alerta_pago',
+            'recordatorio',
+            'pago_pendiente',
+            'nuevo_ingreso',
+            'pago_registrado',
+            name="tipo_notificacion"
+        ),
+        nullable=False
+    )
     leido = mapped_column(Integer, nullable=False, default=0, server_default="0")
     fecha_envio = mapped_column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
 

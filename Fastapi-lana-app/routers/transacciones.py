@@ -78,3 +78,35 @@ def eliminar_transaccion(transaccion_id: int, db: Session = Depends(get_db)):
     db.delete(db_transaccion)
     db.commit()
     return {"detail": "Transacción eliminada correctamente"}
+
+@router.get("/grafica/resumen_mensual", response_model=list[dict])
+def resumen_mensual(
+    usuario_id: int,
+    anio: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Devuelve el total de ingresos y egresos por mes para un usuario y año.
+    """
+    resultados = (
+        db.query(
+            func.extract('month', models.Transacciones.fecha).label("mes"),
+            models.Transacciones.tipo,
+            func.sum(models.Transacciones.monto).label("total")
+        )
+        .filter(
+            models.Transacciones.usuario_id == usuario_id,
+            func.extract('year', models.Transacciones.fecha) == anio
+        )
+        .group_by("mes", models.Transacciones.tipo)
+        .order_by("mes")
+        .all()
+    )
+    return [
+        {
+            "mes": int(r.mes),
+            "tipo": r.tipo,
+            "total": float(r.total)
+        }
+        for r in resultados
+    ]
