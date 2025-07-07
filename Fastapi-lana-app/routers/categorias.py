@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query    
 from sqlalchemy.orm import Session
 import models
 from schemas import CategoriaCreate, CategoriaOut
@@ -14,8 +14,15 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=CategoriaOut)
-def crear_categoria(categoria: CategoriaCreate, db: Session = Depends(get_db)):
-    nueva_categoria = models.Categorias(**categoria.dict())
+def crear_categoria(
+    nombre: str = Query(..., min_length=2, max_length=45, description="Nombre de la categoría"),
+    tipo: str = Query(..., min_length=2, max_length=20, description="Tipo de la categoría"),
+    db: Session = Depends(get_db)
+):
+    nueva_categoria = models.Categorias(
+        nombre=nombre,
+        tipo=tipo
+    )
     db.add(nueva_categoria)
     db.commit()
     db.refresh(nueva_categoria)
@@ -26,12 +33,17 @@ def listar_categorias(db: Session = Depends(get_db)):
     return db.query(models.Categorias).all()
 
 @router.put("/{categoria_id}", response_model=CategoriaOut)
-def actualizar_categoria(categoria_id: int, categoria: CategoriaCreate, db: Session = Depends(get_db)):
+def actualizar_categoria(
+    categoria_id: int,
+    nombre: str = Query(..., min_length=2, max_length=45, description="Nombre de la categoría"),
+    tipo: str = Query(..., min_length=2, max_length=20, description="Tipo de la categoría"),
+    db: Session = Depends(get_db)
+):
     db_categoria = db.query(models.Categorias).filter(models.Categorias.id == categoria_id).first()
     if not db_categoria:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
-    db_categoria.nombre = categoria.nombre
-    db_categoria.tipo = categoria.tipo
+    db_categoria.nombre = nombre
+    db_categoria.tipo = tipo
     db.commit()
     db.refresh(db_categoria)
     return db_categoria

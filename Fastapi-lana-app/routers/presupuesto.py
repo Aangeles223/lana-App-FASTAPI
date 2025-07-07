@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 import models
 from sqlalchemy import func
@@ -16,8 +16,21 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=PresupuestoOut)
-def crear_presupuesto(presupuesto: PresupuestoCreate, db: Session = Depends(get_db)):
-    nuevo_presupuesto = models.Presupuestos(**presupuesto.dict())
+def crear_presupuesto(
+    usuario_id: int = Query(..., description="ID del usuario"),
+    categoria_id: int = Query(..., description="ID de la categoría"),
+    monto_mensual: float = Query(..., description="Monto mensual del presupuesto"),
+    mes: int = Query(..., description="Mes"),
+    anio: int = Query(..., description="Año"),
+    db: Session = Depends(get_db)
+):
+    nuevo_presupuesto = models.Presupuestos(
+        usuario_id=usuario_id,
+        categoria_id=categoria_id,
+        monto_mensual=monto_mensual,
+        mes=mes,
+        anio=anio
+    )
     db.add(nuevo_presupuesto)
     db.commit()
     db.refresh(nuevo_presupuesto)
@@ -72,12 +85,23 @@ def validar_pago_fijo(usuario_id: int, pago_fijo_id: int, mes: int = None, anio:
     }
 
 @router.put("/{presupuesto_id}", response_model=PresupuestoOut)
-def actualizar_presupuesto(presupuesto_id: int, presupuesto: PresupuestoCreate, db: Session = Depends(get_db)):
+def actualizar_presupuesto(
+    presupuesto_id: int,
+    usuario_id: int = Query(..., description="ID del usuario"),
+    categoria_id: int = Query(..., description="ID de la categoría"),
+    monto_mensual: float = Query(..., description="Monto mensual del presupuesto"),
+    mes: int = Query(..., description="Mes"),
+    anio: int = Query(..., description="Año"),
+    db: Session = Depends(get_db)
+):
     db_presupuesto = db.query(models.Presupuestos).filter(models.Presupuestos.id == presupuesto_id).first()
     if not db_presupuesto:
         raise HTTPException(status_code=404, detail="Presupuesto no encontrado")
-    for key, value in presupuesto.dict().items():
-        setattr(db_presupuesto, key, value)
+    db_presupuesto.usuario_id = usuario_id
+    db_presupuesto.categoria_id = categoria_id
+    db_presupuesto.monto_mensual = monto_mensual
+    db_presupuesto.mes = mes
+    db_presupuesto.anio = anio
     db.commit()
     db.refresh(db_presupuesto)
     return db_presupuesto

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 import models
 from datetime import datetime, timedelta, date
@@ -16,8 +16,29 @@ def get_db():
 
 # ----------- POST -----------
 @router.post("/", response_model=PagoFijoOut)
-def crear_pago_fijo(pago: PagoFijoCreate, db: Session = Depends(get_db)):
-    nuevo_pago = models.PagosFijos(**pago.dict())
+def crear_pago_fijo(
+    usuario_id: int = Query(..., description="ID del usuario"),
+    servicio_id: int = Query(..., description="ID del servicio"),
+    nombre: str = Query(..., min_length=2, max_length=100, description="Nombre del pago fijo"),
+    monto: float = Query(..., description="Monto del pago fijo"),
+    categoria_id: int = Query(..., description="ID de la categoría"),
+    dia_pago: int = Query(..., description="Día del mes para el pago"),
+    activo: int = Query(1, description="¿Activo? 1=Sí, 0=No"),
+    pagado: int = Query(0, description="¿Pagado este mes? 1=Sí, 0=No"),
+    ultima_fecha: str = Query(None, description="Última fecha de pago (YYYY-MM-DD)"),
+    db: Session = Depends(get_db)
+):
+    nuevo_pago = models.PagosFijos(
+        usuario_id=usuario_id,
+        servicio_id=servicio_id,
+        nombre=nombre,
+        monto=monto,
+        categoria_id=categoria_id,
+        dia_pago=dia_pago,
+        activo=activo,
+        pagado=pagado,
+        ultima_fecha=ultima_fecha
+    )
     db.add(nuevo_pago)
     db.commit()
     db.refresh(nuevo_pago)
@@ -114,12 +135,25 @@ def pagos_fijos_vencidos(
 
 # ----------- PUT -----------
 @router.put("/{pago_id}", response_model=PagoFijoOut)
-def actualizar_pago_fijo(pago_id: int, pago: PagoFijoCreate, db: Session = Depends(get_db)):
+def actualizar_pago_fijo(
+    pago_id: int,
+    usuario_id: int = Query(..., description="ID del usuario"),
+    categoria_id: int = Query(..., description="ID de la categoría"),
+    monto: float = Query(..., description="Monto del pago fijo"),
+    dia_pago: int = Query(..., description="Día del mes para el pago"),
+    activo: int = Query(..., description="¿Activo? 1=Sí, 0=No"),
+    pagado: int = Query(..., description="¿Pagado este mes? 1=Sí, 0=No"),
+    db: Session = Depends(get_db)
+):
     db_pago = db.query(models.PagosFijos).filter(models.PagosFijos.id == pago_id).first()
     if not db_pago:
         raise HTTPException(status_code=404, detail="Pago fijo no encontrado")
-    for key, value in pago.dict().items():
-        setattr(db_pago, key, value)
+    db_pago.usuario_id = usuario_id
+    db_pago.categoria_id = categoria_id
+    db_pago.monto = monto
+    db_pago.dia_pago = dia_pago
+    db_pago.activo = activo
+    db_pago.pagado = pagado
     db.commit()
     db.refresh(db_pago)
     return db_pago

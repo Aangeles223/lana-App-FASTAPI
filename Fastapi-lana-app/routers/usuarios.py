@@ -36,9 +36,13 @@ def obtener_saldo(usuario_id: int, db: Session = Depends(get_db)):
     return {"saldo": saldo}
 
 @router.post("/login")
-async def login(usuario: UsuarioLogin, db: Session = Depends(get_db)):
-    db_usuario = db.query(models.Usuarios).filter(models.Usuarios.email == usuario.email).first()
-    if db_usuario and bcrypt.checkpw(usuario.contraseña.encode('utf-8'), db_usuario.contraseña.encode('utf-8')):
+async def login(
+    email: str = Query(..., min_length=6, max_length=50, description="Correo electrónico"),
+    contraseña: str = Query(..., min_length=6, max_length=50, description="Contraseña"),
+    db: Session = Depends(get_db)
+):
+    db_usuario = db.query(models.Usuarios).filter(models.Usuarios.email == email).first()
+    if db_usuario and bcrypt.checkpw(contraseña.encode('utf-8'), db_usuario.contraseña.encode('utf-8')):
         token = crear_token({"sub": db_usuario.email, "usuario_id": db_usuario.id})
         return {
             "message": f"Bienvenido {db_usuario.nombre}, correo y contraseña correctos.",
@@ -75,24 +79,36 @@ def crear_usuario(
 
 
 @router.put("/{usuario_id}", response_model=UsuarioOut)
-def actualizar_usuario(usuario_id: int, usuario: UsuarioUpdate, db: Session = Depends(get_db)):
+def actualizar_usuario(
+    usuario_id: int,
+    nombre: str = Query(..., min_length=2, max_length=45, description="Nombre del usuario"),
+    apellidos: str = Query(..., min_length=2, max_length=45, description="Apellidos del usuario"),
+    email: str = Query(..., min_length=6, max_length=50, description="Correo electrónico"),
+    telefono: str = Query(..., min_length=8, max_length=20, description="Teléfono"),
+    db: Session = Depends(get_db)
+):
     db_usuario = db.query(models.Usuarios).filter(models.Usuarios.id == usuario_id).first()
     if not db_usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    db_usuario.nombre = usuario.nombre
-    db_usuario.apellidos = usuario.apellidos
-    db_usuario.email = usuario.email
-    db_usuario.telefono = usuario.telefono
+    db_usuario.nombre = nombre
+    db_usuario.apellidos = apellidos
+    db_usuario.email = email
+    db_usuario.telefono = telefono
     db.commit()
     db.refresh(db_usuario)
     return db_usuario
 
 @router.put("/{usuario_id}/cambiar_contrasena")
-def cambiar_contrasena(usuario_id: int, datos: CambiarContrasena, db: Session = Depends(get_db)):
+def cambiar_contrasena(
+    usuario_id: int,
+    contrasena_actual: str = Query(..., min_length=6, max_length=50, description="Contraseña actual"),
+    contrasena_nueva: str = Query(..., min_length=6, max_length=50, description="Nueva contraseña"),
+    db: Session = Depends(get_db)
+):
     usuario = db.query(models.Usuarios).filter(models.Usuarios.id == usuario_id).first()
-    if not usuario or not bcrypt.checkpw(datos.contrasena_actual.encode('utf-8'), usuario.contraseña.encode('utf-8')):
+    if not usuario or not bcrypt.checkpw(contrasena_actual.encode('utf-8'), usuario.contraseña.encode('utf-8')):
         raise HTTPException(status_code=401, detail="Contraseña actual incorrecta")
-    hashed = bcrypt.hashpw(datos.contrasena_nueva.encode('utf-8'), bcrypt.gensalt())
+    hashed = bcrypt.hashpw(contrasena_nueva.encode('utf-8'), bcrypt.gensalt())
     usuario.contraseña = hashed.decode('utf-8')
     db.commit()
     return {"detail": "Contraseña actualizada correctamente"}

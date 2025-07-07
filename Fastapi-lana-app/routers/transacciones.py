@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 import models
 from sqlalchemy import func
@@ -16,8 +16,23 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=TransaccionOut)
-def crear_transaccion(transaccion: TransaccionCreate, db: Session = Depends(get_db)):
-    nueva_transaccion = models.Transacciones(**transaccion.dict())
+def crear_transaccion(
+    usuario_id: int = Query(..., description="ID del usuario"),
+    categoria_id: int = Query(..., description="ID de la categoría"),
+    monto: float = Query(..., description="Monto de la transacción"),
+    tipo: str = Query(..., min_length=3, max_length=10, description="Tipo de transacción (ingreso/egreso)"),
+    fecha: str = Query(..., description="Fecha de la transacción (YYYY-MM-DD)"),
+    descripcion: str = Query(None, max_length=255, description="Descripción de la transacción"),
+    db: Session = Depends(get_db)
+):
+    nueva_transaccion = models.Transacciones(
+        usuario_id=usuario_id,
+        categoria_id=categoria_id,
+        monto=monto,
+        tipo=tipo,
+        fecha=fecha,
+        descripcion=descripcion
+    )
     db.add(nueva_transaccion)
     db.commit()
     db.refresh(nueva_transaccion)
@@ -60,12 +75,25 @@ def resumen_transacciones(
     ]
 
 @router.put("/{transaccion_id}", response_model=TransaccionOut)
-def actualizar_transaccion(transaccion_id: int, transaccion: TransaccionCreate, db: Session = Depends(get_db)):
+def actualizar_transaccion(
+    transaccion_id: int,
+    usuario_id: int = Query(..., description="ID del usuario"),
+    categoria_id: int = Query(..., description="ID de la categoría"),
+    monto: float = Query(..., description="Monto de la transacción"),
+    tipo: str = Query(..., min_length=3, max_length=10, description="Tipo de transacción (ingreso/egreso)"),
+    fecha: str = Query(..., description="Fecha de la transacción (YYYY-MM-DD)"),
+    descripcion: str = Query(None, max_length=255, description="Descripción de la transacción"),
+    db: Session = Depends(get_db)
+):
     db_transaccion = db.query(models.Transacciones).filter(models.Transacciones.id == transaccion_id).first()
     if not db_transaccion:
         raise HTTPException(status_code=404, detail="Transacción no encontrada")
-    for key, value in transaccion.dict().items():
-        setattr(db_transaccion, key, value)
+    db_transaccion.usuario_id = usuario_id
+    db_transaccion.categoria_id = categoria_id
+    db_transaccion.monto = monto
+    db_transaccion.tipo = tipo
+    db_transaccion.fecha = fecha
+    db_transaccion.descripcion = descripcion
     db.commit()
     db.refresh(db_transaccion)
     return db_transaccion
