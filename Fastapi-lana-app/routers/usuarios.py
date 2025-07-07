@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from schemas import UsuarioLogin
 import models
@@ -48,18 +48,25 @@ async def login(usuario: UsuarioLogin, db: Session = Depends(get_db)):
     raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
 
 @router.post("/", response_model=UsuarioOut)
-def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
-    db_usuario = db.query(models.Usuarios).filter(models.Usuarios.email == usuario.email).first()
+def crear_usuario(
+    nombre: str = Query(..., min_length=2, max_length=45, description="Nombre del usuario"),
+    apellidos: str = Query(..., min_length=2, max_length=45, description="Apellidos del usuario"),
+    email: str = Query(..., min_length=6, max_length=50, description="Correo electrónico"),
+    contraseña: str = Query(..., min_length=6, max_length=50, description="Contraseña"),
+    telefono: str = Query(..., min_length=8, max_length=20, description="Teléfono"),
+    db: Session = Depends(get_db)
+):
+    db_usuario = db.query(models.Usuarios).filter(models.Usuarios.email == email).first()
     if db_usuario:
         raise HTTPException(status_code=400, detail="El correo ya está registrado.")
-    # Encriptar la contraseña
-    hashed_password = bcrypt.hashpw(usuario.contraseña.encode('utf-8'), bcrypt.gensalt())
+    hashed_password = bcrypt.hashpw(contraseña.encode('utf-8'), bcrypt.gensalt())
     nuevo_usuario = models.Usuarios(
-        nombre=usuario.nombre,
-        apellidos=usuario.apellidos,
-        email=usuario.email,
+        nombre=nombre,
+        apellidos=apellidos,
+        email=email,
         contraseña=hashed_password.decode('utf-8'),
-        telefono=usuario.telefono
+        telefono=telefono
+        # status_id se omite, la BD lo pone por defecto
     )
     db.add(nuevo_usuario)
     db.commit()
