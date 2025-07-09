@@ -149,3 +149,14 @@ def resumen_mensual(
         }
         for r in resultados
     ]
+
+
+@router.get("/historial/{usuario_id}", response_model=list[TransaccionOut])
+def historial_transacciones(usuario_id: int, db: Session = Depends(get_db)):
+    """
+    Devuelve todas las transacciones (movimientos) de un usuario, ordenadas por fecha descendente.
+    """
+    historial = db.query(models.Transacciones).filter(
+        models.Transacciones.usuario_id == usuario_id
+    ).order_by(models.Transacciones.fecha.desc()).all()
+    return historial

@@ -7,7 +7,11 @@ from fastapi.exceptions import RequestValidationError
 
 models.Base.metadata.create_all(bind=database.engine)
 
-app = FastAPI()
+app = FastAPI(
+    title="Lana App API",
+    description="API para la gestión de finanzas personales: usuarios, transacciones, presupuestos, pagos fijos, servicios, categorías, notificaciones y registros automáticos. Permite registrar ingresos y egresos, consultar saldos, ver historial de movimientos y administrar la información financiera de los usuarios.",
+    version="1.0.0"
+)
 
 app.include_router(usuarios.router)
 
