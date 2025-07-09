@@ -24,16 +24,10 @@ def listar_usuarios(db: Session = Depends(get_db)):
 
 @router.get("/{usuario_id}/saldo")
 def obtener_saldo(usuario_id: int, db: Session = Depends(get_db)):
-    ingresos = db.query(func.sum(models.Transacciones.monto)).filter(
-        models.Transacciones.usuario_id == usuario_id,
-        models.Transacciones.tipo == "ingreso"
-    ).scalar() or 0
-    egresos = db.query(func.sum(models.Transacciones.monto)).filter(
-        models.Transacciones.usuario_id == usuario_id,
-        models.Transacciones.tipo == "egreso"
-    ).scalar() or 0
-    saldo = float(ingresos) - float(egresos)
-    return {"saldo": saldo}
+    saldo = db.query(func.sum(models.Transacciones.monto)).filter(
+        models.Transacciones.usuario_id == usuario_id
+    ).scalar() or 0.0
+    return {"saldo": float(saldo)}
 
 @router.post("/login")
 async def login(

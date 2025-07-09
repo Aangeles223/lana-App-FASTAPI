@@ -17,14 +17,20 @@ def get_db():
 
 @router.post("/", response_model=TransaccionOut)
 def crear_transaccion(
-    usuario_id: int = Query(..., description="ID del usuario"),
-    categoria_id: int = Query(..., description="ID de la categoría"),
-    monto: float = Query(..., description="Monto de la transacción"),
-    tipo: str = Query(..., min_length=3, max_length=10, description="Tipo de transacción (ingreso/egreso)"),
-    fecha: str = Query(..., description="Fecha de la transacción (YYYY-MM-DD)"),
-    descripcion: str = Query(None, max_length=255, description="Descripción de la transacción"),
+    usuario_id: int = Query(...),
+    categoria_id: int = Query(...),
+    monto: float = Query(...),
+    tipo: str = Query(...),
+    fecha: str = Query(...),
+    descripcion: str = Query(None),
     db: Session = Depends(get_db)
 ):
+    # Si es egreso, guarda el monto como negativo
+    if tipo.lower() == "egreso" and monto > 0:
+        monto = -monto
+    # Si es ingreso, asegura que el monto sea positivo
+    if tipo.lower() == "ingreso" and monto < 0:
+        monto = abs(monto)
     nueva_transaccion = models.Transacciones(
         usuario_id=usuario_id,
         categoria_id=categoria_id,
@@ -88,6 +94,11 @@ def actualizar_transaccion(
     db_transaccion = db.query(models.Transacciones).filter(models.Transacciones.id == transaccion_id).first()
     if not db_transaccion:
         raise HTTPException(status_code=404, detail="Transacción no encontrada")
+    # Lógica para signo del monto
+    if tipo.lower() == "egreso" and monto > 0:
+        monto = -monto
+    if tipo.lower() == "ingreso" and monto < 0:
+        monto = abs(monto)
     db_transaccion.usuario_id = usuario_id
     db_transaccion.categoria_id = categoria_id
     db_transaccion.monto = monto
