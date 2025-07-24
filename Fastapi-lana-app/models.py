@@ -9,7 +9,7 @@ class Usuarios(Base):
     nombre = mapped_column(String(100), nullable=False)
     apellidos = mapped_column(String(100), nullable=False)
     email = mapped_column(String(100), nullable=False, unique=True)
-    contraseña = mapped_column(String(255), nullable=False)
+    contrasena = mapped_column(String(255), nullable=False)  # <--- SIN Ñ, SIN PASSWORD
     telefono = mapped_column(String(20), nullable=True)
     fecha_creacion = mapped_column(
         TIMESTAMP, nullable=False, server_default=func.current_timestamp()
